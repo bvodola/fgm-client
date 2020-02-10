@@ -1,39 +1,62 @@
-var path = require('path');
-var webpack = require('webpack');
-var HtmlWebpackPlugin = require('html-webpack-plugin');
+const path = require("path");
+const webpack = require("webpack");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 const HtmlWebpackPluginConfig = new HtmlWebpackPlugin({
-  template: './public/index.html',
-  filename: 'index.html',
-  inject: 'body'
-})
+  template: "./public/index.html",
+  filename: "index.html",
+  inject: "body"
+});
 
 module.exports = {
-  devtool: 'cheap-module-source-map',
-  entry: [
-    './src/index.js'
-  ],
+  mode: "production",
+  devtool: "cheap-module-source-map",
+  entry: ["./src/index.js"],
   output: {
-    path: path.resolve('build'),
-    publicPath: '/',
-    filename: 'bundle.js'
+    path: path.resolve("../server/client_build"),
+    publicPath: "/",
+    filename: "bundle.js"
+  },
+  optimization: {
+    minimize: true
   },
   module: {
-    loaders: [
-      { test: /\.js$/, loader: 'babel-loader', exclude: /node_modules/ },
-      { test: /\.jsx$/, loader: 'babel-loader', exclude: /node_modules/ }
+    rules: [
+      { test: /\.js$/, loader: "babel-loader", exclude: /node_modules/ },
+      { test: /\.jsx$/, loader: "babel-loader", exclude: /node_modules/ },
+      {
+        test: /\.sass$/,
+        use: [
+          { loader: "style-loader" },
+          { loader: "css-loader" },
+          { loader: "sass-loader" }
+        ],
+        exclude: /node_modules/
+      },
+      {
+        test: /\.scss$/,
+        use: [
+          { loader: "style-loader" },
+          { loader: "css-loader" },
+          { loader: "sass-loader" }
+        ],
+        exclude: /node_modules/
+      }
     ]
   },
   plugins: [
     HtmlWebpackPluginConfig,
-    new webpack.optimize.UglifyJsPlugin({
-      sourceMap: false,
-      mangle: false
-    }),
+    new CopyWebpackPlugin([{ from: "public", to: "public" }]),
     new webpack.DefinePlugin({
-      'process.env': {
-        'NODE_ENV': JSON.stringify('production')
+      "process.env": {
+        NODE_ENV: JSON.stringify("production")
       }
     })
-  ]
-}
+  ],
+  resolve: {
+    alias: {
+      src: path.resolve(__dirname, "../src")
+    }
+  }
+};
