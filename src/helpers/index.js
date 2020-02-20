@@ -49,7 +49,9 @@ const setFormField = (self, name) => {
       // self.setState({form});
       _.set(
         `form.${name}`,
-        ev.target.type === "number" ? Number(ev.target.value) : ev.target.value
+        ev.target.type && ev.target.type === "number"
+          ? Number(ev.target.value)
+          : ev.target.value
       );
     },
     value: _.get(`form.${name}`)

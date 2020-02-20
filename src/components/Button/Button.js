@@ -9,7 +9,12 @@ export default styled.button`
   font-weight: 700;
   text-transform: uppercase;
   border-radius: 30px;
-  background-color: ${props => props.theme.colors.red};
+  background-color: ${props =>
+    props.variant === "success"
+      ? props.theme.colors.green
+      : props.variant === "info"
+      ? props.theme.colors.darkBlue
+      : props.theme.colors.red};
   color: white;
   outline: none;
   cursor: pointer;

@@ -10,13 +10,24 @@
     "build:prod": "webpack --config ./config/webpack.config.prod.js"
   },
   "dependencies": {
+    "@wojtekmaj/react-daterange-picker": "^2.5.0",
     "axios": "^0.19.2",
+    "chart.js": "^2.9.3",
     "date-fns": "^2.9.0",
     "path": "^0.12.7",
     "prop-types": "^15.6.2",
     "react": "^16.4.1",
+    "react-chartjs-2": "^2.9.0",
+    "react-charts": "^2.0.0-beta.6",
+    "react-date-picker": "^7.10.0",
     "react-dom": "^16.4.1",
     "react-fade-in": "^0.1.8",
+    "react-google-charts": "^3.0.15",
+    "react-icons": "^3.9.0",
+    "react-router-dom": "^5.1.2",
+    "react-switch": "^5.0.1",
+    "react-vis": "^1.11.7",
+    "recharts": "^2.0.0-beta.1",
     "styled-components": "^5.0.0"
   },
   "devDependencies": {

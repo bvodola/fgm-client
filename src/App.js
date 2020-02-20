@@ -1,10 +1,13 @@
 import React from "react";
 import { ThemeProvider } from "styled-components";
+import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 import FadeIn from "react-fade-in";
 import api from "src/api";
 import theme from "src/theme.js";
 import { Nav, Text, Section, Input, Button } from "src/components";
 import ReceiptsList from "src/screens/ReceiptsList";
+import Reports from "src/screens/Reports";
+import Drawings from "src/screens/Drawings";
 import { setFormField } from "src/helpers";
 import "./App.scss";
 
@@ -59,52 +62,74 @@ class App extends React.Component {
   render() {
     return (
       <ThemeProvider theme={theme}>
-        <div className="App">
-          <Nav>
-            <div className="logo">
-              <img src="/public/fgm.png" alt="Logo FGM" />
-            </div>
-            <ul className="menu">
-              <li className="visible-mobile">
-                <a href="#" onClick={() => {}}>
-                  {this.state.isLoggedIn ? (
-                    <span>
-                      {this.state.loggedInUser.email}{" "}
-                      <span onClick={this.logout}>(Logout)</span>
-                    </span>
-                  ) : (
-                    <span></span>
-                  )}
-                </a>
-              </li>
-            </ul>
-          </Nav>
-          <div style={{ paddingTop: "80px" }}></div>
-          {this.state.isLoggedIn ? (
-            <FadeIn>
-              <ReceiptsList />
-            </FadeIn>
-          ) : (
-            <FadeIn>
-              <Text variant="h1">Login</Text>
-              <Section variant="box">
-                <form action="#" onSubmit={this.handleSubmitLogin}>
-                  <Input
-                    {...setFormField(this, "email")}
-                    type="text"
-                    placeholder="Email"
-                  />
-                  <Input
-                    {...setFormField(this, "password")}
-                    type="password"
-                    placeholder="Senha"
-                  />
-                  <Button type="submit">Fazer Login</Button>
-                </form>
-              </Section>
-            </FadeIn>
-          )}
-        </div>
+        <Router>
+          <div className="App">
+            <Nav>
+              <div className="logo">
+                <img src="/public/fgm.png" alt="Logo FGM" />
+              </div>
+              <ul className="menu">
+                <li>
+                  <Link to="/">Notas Fiscais</Link>
+                </li>
+                <li>&bull;</li>
+                <li>
+                  <Link to="/relatorios">Relatórios</Link>
+                </li>
+                <li>&bull;</li>
+                <li>
+                  <Link to="/sorteios">Sorteios</Link>
+                </li>
+                <li>&bull;</li>
+                <li className="visible-mobile">
+                  <a href="#" onClick={() => {}}>
+                    {this.state.isLoggedIn ? (
+                      <span>
+                        {this.state.loggedInUser.email}{" "}
+                        <span onClick={this.logout}>(Logout)</span>
+                      </span>
+                    ) : (
+                      <span></span>
+                    )}
+                  </a>
+                </li>
+              </ul>
+            </Nav>
+            <div style={{ paddingTop: "80px" }}></div>
+            {this.state.isLoggedIn ? (
+              <Switch>
+                <Route exact path="/">
+                  <ReceiptsList />
+                </Route>
+                <Route path="/relatorios">
+                  <Reports />
+                </Route>
+                <Route path="/sorteios">
+                  <Drawings />
+                </Route>
+              </Switch>
+            ) : (
+              <FadeIn>
+                <Text variant="h1">Login</Text>
+                <Section variant="box">
+                  <form action="#" onSubmit={this.handleSubmitLogin}>
+                    <Input
+                      {...setFormField(this, "email")}
+                      type="text"
+                      placeholder="Email"
+                    />
+                    <Input
+                      {...setFormField(this, "password")}
+                      type="password"
+                      placeholder="Senha"
+                    />
+                    <Button type="submit">Fazer Login</Button>
+                  </form>
+                </Section>
+              </FadeIn>
+            )}
+          </div>
+        </Router>
       </ThemeProvider>
     );
   }

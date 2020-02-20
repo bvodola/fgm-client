@@ -12,6 +12,7 @@ const StyledTr = styled.tr`
   border-bottom: 1px solid #eee;
 
   td {
+    flex: 1;
     padding: 25px 0px;
   }
 

@@ -1,33 +1,33 @@
 import React from "react";
 import { format } from "date-fns";
-import { Section, Text, Table, Tr, Td } from "src/components";
-import api from "src/api";
-
 import styled from "styled-components";
+
+import { Section, Text, Table, Tr, Td, Filters, Row } from "src/components";
+import api from "src/api";
 
 const RecepitsTable = styled(Table)`
   font-size: 13px;
   tr {
     td:nth-child(1) {
-      width: 10%;
+      flex: 10%;
     }
 
     td:nth-child(2) {
-      width: 30%;
+      flex: 30%;
     }
 
     td:nth-child(3) {
-      width: 20%;
+      flex: 20%;
     }
 
     td:nth-child(4) {
-      width: 20%;
+      flex: 20%;
     }
 
     td:nth-child(5),
     td:nth-child(6) {
       font-weight: bold;
-      width: 10%;
+      flex: 10%;
       text-align: center;
       img {
         width: 32px;
@@ -59,8 +59,13 @@ class ReceitsList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      users: []
+      users: [],
+      filterByDate: false,
+      dateRange: [new Date(), new Date()]
     };
+
+    this.handleDateRange = this.handleDateRange.bind(this);
+    this.handleFilterByDate = this.handleFilterByDate.bind(this);
   }
 
   async componentDidMount() {
@@ -123,77 +128,112 @@ class ReceitsList extends React.Component {
     }
   }
 
-  render() {
+  handleDateRange(dateRange) {
+    this.setState({ dateRange });
+  }
+
+  handleFilterByDate(value) {
+    this.setState({ filterByDate: value });
+  }
+
+  getTableData() {
+    const { users, dateRange, filterByDate } = this.state;
     let tableData = [];
-    this.state.users.forEach(user => {
+
+    users.forEach(user => {
       user.receipts.forEach(receipt => {
-        tableData.push({
-          user,
-          receipt
-        });
+        // Get the Receipt or User Created Date
+        const createdDate = new Date(Number(receipt.created || user.created));
+        if (
+          !filterByDate ||
+          (Array.isArray(dateRange) &&
+            createdDate >= dateRange[0] &&
+            createdDate <= dateRange[1])
+        ) {
+          tableData.push({
+            user,
+            receipt
+          });
+        }
       });
     });
     console.log(tableData);
+    return tableData;
+  }
+
+  render() {
+    const tableData = this.getTableData();
 
     return (
       <div>
-        <Text variant="h1">Cadastros Realizados</Text>
+        <Text variant="h1">Notas Fiscais</Text>
         <Section>
-          <RecepitsTable>
-            <Tr className="header">
-              <Td>Data</Td>
-              <Td>Client</Td>
-              <Td>Documentos</Td>
-              <Td>Nota Fiscal</Td>
-              <Td>&nbsp;</Td>
-              <Td>&nbsp;</Td>
-            </Tr>
-            {tableData.map(row => (
-              <Tr key={row.receipt._id}>
-                <Td>
-                  {format(Number(row.user.created), "dd/MM/yyyy")} <br />{" "}
-                  {format(Number(row.user.created), "HH:mm")}
-                </Td>
-                <Td>
-                  <i>{row.user.name}</i> <br />
-                  {row.user.email} <br />
-                  {row.user.phone}
-                </Td>
-                <Td>
-                  CRO: {row.user.cro} <br />
-                  CPF: {row.user.cpf} <br />
-                  RG/CNPJ: {row.user.rg_cnpj}
-                </Td>
-                <Td>
-                  {row.receipt.dental_name} <br />
-                  Nota No: {row.receipt.code} <br />
-                  R$ {row.receipt.amount}
-                </Td>
-                <Td>
-                  Ver Nota <br />
-                  <a href={row.receipt.files[0]} target="_blank">
-                    <img src="/public/download.png" alt="" />
-                  </a>
-                </Td>
-                <Td>
-                  Aprovada? <br />
-                  <CheckboxWrapper
-                    onClick={() =>
-                      this.toggleApproveReceipt(
-                        row.user._id,
-                        row.receipt._id,
-                        !row.receipt.approved
-                      )
-                    }
-                  >
-                    {row.receipt.approved && (
-                      <img src="/public/check.png" alt="" />
-                    )}
-                  </CheckboxWrapper>
-                </Td>
+          <Filters
+            filterByDate={this.state.filterByDate}
+            handleFilterByDate={this.handleFilterByDate}
+            dateRange={this.state.dateRange}
+            handleDateRange={this.handleDateRange}
+          />
+          <Row padded>
+            <Text>{tableData.length} notas fiscais cadastradas</Text>
+          </Row>
+          <Row padded>
+            <RecepitsTable>
+              <Tr className="header">
+                <Td>Data</Td>
+                <Td>Client</Td>
+                <Td>Documentos</Td>
+                <Td>Nota Fiscal</Td>
+                <Td>&nbsp;</Td>
+                <Td>&nbsp;</Td>
               </Tr>
-            ))}
-          </RecepitsTable>
+              {tableData.map(row => (
+                <Tr key={row.receipt._id}>
+                  <Td>
+                    {format(Number(row.user.created), "dd/MM/yyyy")} <br />{" "}
+                    {format(Number(row.user.created), "HH:mm")}
+                  </Td>
+                  <Td>
+                    <i>{row.user.name}</i> <br />
+                    {row.user.email} <br />
+                    {row.user.phone}
+                  </Td>
+                  <Td>
+                    CRO: {row.user.cro} <br />
+                    CPF: {row.user.cpf} <br />
+                    RG/CNPJ: {row.user.rg_cnpj}
+                  </Td>
+                  <Td>
+                    {row.receipt.dental_name} <br />
+                    Nota No: {row.receipt.code} <br />
+                    R$ {row.receipt.amount}
+                  </Td>
+                  <Td>
+                    Ver Nota <br />
+                    <a href={row.receipt.files[0]} target="_blank">
+                      <img src="/public/download.png" alt="" />
+                    </a>
+                  </Td>
+                  <Td>
+                    Aprovada? <br />
+                    <CheckboxWrapper
+                      onClick={() =>
+                        this.toggleApproveReceipt(
+                          row.user._id,
+                          row.receipt._id,
+                          !row.receipt.approved
+                        )
+                      }
+                    >
+                      {row.receipt.approved && (
+                        <img src="/public/check.png" alt="" />
+                      )}
+                    </CheckboxWrapper>
+                  </Td>
+                </Tr>
+              ))}
+            </RecepitsTable>
+          </Row>
         </Section>
       </div>
     );

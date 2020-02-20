@@ -211,7 +211,8 @@ const crud = (model, addLoggedUserInputFields = false) => {
 
 const api = {
   login,
-  ...crud("user")
+  ...crud("user"),
+  ...crud("draw")
 };
 
 export default api;
