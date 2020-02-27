@@ -10,9 +10,10 @@ import {
   Table,
   Tr,
   Td,
-  Switch
+  Switch,
+  Button
 } from "src/components";
-
+import { BACKEND_URL } from "src/constants";
 import { format } from "date-fns";
 
 class Reports extends React.Component {
@@ -61,12 +62,13 @@ class Reports extends React.Component {
     const { users, dateRange, filterByDate, splitByCompanyType } = this.state;
     let tableData = [];
 
+    // =================
+    // Loop each receipt
+    // =================
     Array.isArray(users) &&
       users.forEach(user => {
         Array.isArray(user.receipts) &&
           user.receipts.forEach(receipt => {
-            // Loop each receipt
-
             // The created date is either the one from the receipt or the user
             const createdDate = new Date(
               Number(receipt.created || user.created)
@@ -86,12 +88,15 @@ class Reports extends React.Component {
                   1}-${createdDate.getDate()}`
               );
 
-              console.log("receipt", receipt);
-              // First, we check if the current receipt date is already present on tableData
+              // ==============================================================
+              // First, we check if the current receipt date is already present
+              //  on tableData and just add 1 to it
+              // ==============================================================
               tableData = tableData.map(e => {
                 if (e[0].getTime() === startOfDay.getTime()) {
-                  appendToData = false;
+                  appendToData = false; // If the date is already present, we don't need to append a new entry
                   if (splitByCompanyType) {
+                    // Split by company type
                     if (
                       receipt.dental_name
                         .toLowerCase()
@@ -103,27 +108,33 @@ class Reports extends React.Component {
                       e[2]++;
                     }
                   } else {
+                    // No split
                     e[1]++;
                   }
                 }
                 return e;
               });
 
+              // ===============================================================
               // If not, we append it and set the initial numberOfReceipts value
+              // ===============================================================
               if (appendToData) {
                 if (splitByCompanyType) {
+                  // Split by company type
                   if (
                     receipt.dental_name
                       .toLowerCase()
                       .trim()
                       .search("fgm") >= 0
                   ) {
-                    e[1]++;
+                    // FGM receipt
                     tableData.push([startOfDay, 1, 0]);
                   } else {
+                    // Other dentals receipt
                     tableData.push([startOfDay, 0, 1]);
                   }
                 } else {
+                  // No split
                   tableData.push([startOfDay, 1]);
                 }
               }
@@ -131,11 +142,41 @@ class Reports extends React.Component {
           });
       });
 
+    // Sort by ascending date
+    tableData = tableData.sort((a, b) => {
+      if (a[0] < b[0]) {
+        return -1;
+      }
+      if (a[0] > b[0]) {
+        return 1;
+      }
+      // a deve ser igual a b
+      return 0;
+    });
+
+    // Adding Headers
     tableData = splitByCompanyType
       ? [["Data", "FGM", "Dentais"], ...tableData]
       : [["Data", "Notas Fiscais"], ...tableData];
+
     console.log(tableData);
     return tableData;
+  }
+
+  downloadExcelReport(chartData) {
+    chartData = this.formatChartDates(chartData);
+    console.log(chartData);
+    const chartDataString = JSON.stringify(chartData);
+    window.open(`${BACKEND_URL}/api/excel?data=${chartDataString}`);
+  }
+
+  formatChartDates(chartData) {
+    return chartData.map(e => {
+      if (typeof e[0] === "object") {
+        e[0] = format(e[0], "dd/MM/yyyy");
+      }
+      return e;
+    });
   }
 
   render() {
@@ -144,7 +185,12 @@ class Reports extends React.Component {
       <div>
         <Text variant="h1">Relatórios</Text>
         <Section>
-          <Text variant="h2">Notas fiscais recebidas</Text>
+          <Row>
+            <Col>
+              <Text variant="h2">Notas fiscais recebidas</Text>
+            </Col>
+            <Col></Col>
+          </Row>
           <Section variant="box" style={{ margin: 0 }}>
             <Filters
               filterByDate={this.state.filterByDate}
@@ -179,6 +225,18 @@ class Reports extends React.Component {
               </Col>
             </Row>
           </Section>
+          <Row padded>
+            <Button
+              style={{
+                fontSize: "15px",
+                marginTop: 0,
+                alignSelf: "flex-end"
+              }}
+              onClick={() => this.downloadExcelReport(chartData)}
+            >
+              Baixar Relatório Excel
+            </Button>
+          </Row>
           {this.state.showGraphics ? (
             <Row padded>
               {chartData.length > 1 ? (
@@ -191,12 +249,12 @@ class Reports extends React.Component {
             <Row padded>
               <Table>
                 {chartData.map((entry, i) => (
-                  <Tr>
+                  <Tr key={entry[0]}>
                     <Td>
                       {i === 0 ? entry[0] : format(entry[0], "dd/MM/yyyy")}
                     </Td>
                     <Td>{entry[1]}</Td>
-                    {entry[2] && <Td>{entry[2]}</Td>}
+                    {typeof entry[2] !== "undefined" && <Td>{entry[2]}</Td>}
                   </Tr>
                 ))}
               </Table>

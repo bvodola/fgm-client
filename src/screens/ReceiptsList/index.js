@@ -61,7 +61,7 @@ class ReceitsList extends React.Component {
     this.state = {
       users: [],
       filterByDate: false,
-      dateRange: [new Date(), new Date()]
+      dateRange: [null, null]
     };
 
     this.handleDateRange = this.handleDateRange.bind(this);

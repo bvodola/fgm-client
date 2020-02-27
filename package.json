@@ -7,7 +7,8 @@
     "test": "jest",
     "start": "webpack-dev-server --config ./config/webpack.config.js",
     "build": "webpack --config ./config/webpack.config.js",
-    "build:prod": "webpack --config ./config/webpack.config.prod.js"
+    "build:prod": "webpack --config ./config/webpack.config.prod.js",
+    "build:localprod": "webpack --config ./config/webpack.config.localprod.js"
   },
   "dependencies": {
     "@wojtekmaj/react-daterange-picker": "^2.5.0",

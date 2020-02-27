@@ -343,7 +343,7 @@ class Reports extends React.Component {
                     <b>Data Agendada</b>
                   </Td>
                   <Td>
-                    <b>Prêmio</b>
+                    <b>Prêmio(s)</b>
                   </Td>
                   <Td>&nbsp;</Td>
                 </Tr>
@@ -351,7 +351,11 @@ class Reports extends React.Component {
                 {scheduled_draws.map(d => (
                   <Tr key={d._id}>
                     <Td>{format(Number(d.date_scheduled), "dd/MM/yyyy")}</Td>
-                    <Td>{d.prize}</Td>
+                    <Td
+                      dangerouslySetInnerHTML={{
+                        __html: d.prize.split("\n").join("<br />")
+                      }}
+                    />
                     <Td style={{ textAlign: "right" }}>
                       <Button
                         onClick={() => this.toggleDrawModal(d._id)}
@@ -406,7 +410,7 @@ class Reports extends React.Component {
                     <b>Ganhador</b>
                   </Td>
                   <Td>
-                    <b>Prêmio</b>
+                    <b>Prêmio(s)</b>
                   </Td>
                   {/* <Td>&nbsp;</Td> */}
                 </Tr>
@@ -429,7 +433,11 @@ class Reports extends React.Component {
                       {draw.winner.name} <br />
                       <i>{draw.winner.phone}</i>
                     </Td>
-                    <Td>{draw.prize}</Td>
+                    <Td
+                      dangerouslySetInnerHTML={{
+                        __html: draw.prize.split("\n").join("<br />")
+                      }}
+                    />
                     {/* <Td style={{ fontSize: "12px", textAlign: "center" }}>
                       Publicar?
                       <br />
@@ -471,13 +479,17 @@ class Reports extends React.Component {
               </Row>
               <Row mTop={"20px"}>
                 <Col size={"20%"}>
-                  <Text variant="label">Prêmio</Text>
+                  <Text variant="label">Prêmio(s)</Text>
                 </Col>
                 <Col size={"80%"}>
                   <Input
+                    type="textarea"
+                    rows={3}
                     style={{ marginTop: 0 }}
                     {...setFormField(this, "prize")}
-                    placeholder="Descreva o prêmio"
+                    placeholder={
+                      "- Prêmio 1\u000A\u000D- Prêmio 2\u000A\u000D- Prêmio 3"
+                    }
                   />
                 </Col>
               </Row>
@@ -539,7 +551,12 @@ class Reports extends React.Component {
               <Col size={"40%"}>
                 <Text variant="label">Prêmio</Text>
               </Col>
-              <Col size={"60%"}>{this.state.form.prize}</Col>
+              <Col
+                size={"60%"}
+                dangerouslySetInnerHTML={{
+                  __html: this.state.form.prize.split("\n").join("<br />")
+                }}
+              />
             </Row>
 
             {selected_performed_draw ? (
