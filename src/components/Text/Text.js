@@ -25,6 +25,12 @@ const Label = styled.label`
   font-weight: bold;
 `;
 
+const Hint = styled.p`
+  color: ${props => props.theme.colors.darkGray};
+  margin: 10px 0 -10px 0;
+  font-size: 10px;
+`;
+
 const Text = props => {
   switch (props.variant) {
     case "h1": {
@@ -37,6 +43,10 @@ const Text = props => {
 
     case "label": {
       return <Label {...props} />;
+    }
+
+    case "hint": {
+      return <Hint {...props} />;
     }
 
     default: {

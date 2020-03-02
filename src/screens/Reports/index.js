@@ -13,7 +13,6 @@ import {
   Switch,
   Button
 } from "src/components";
-import { BACKEND_URL } from "src/constants";
 import { format } from "date-fns";
 
 class Reports extends React.Component {
@@ -163,13 +162,6 @@ class Reports extends React.Component {
     return tableData;
   }
 
-  downloadExcelReport(chartData) {
-    chartData = this.formatChartDates(chartData);
-    console.log(chartData);
-    const chartDataString = JSON.stringify(chartData);
-    window.open(`${BACKEND_URL}/api/excel?data=${chartDataString}`);
-  }
-
   formatChartDates(chartData) {
     return chartData.map(e => {
       if (typeof e[0] === "object") {
@@ -232,9 +224,14 @@ class Reports extends React.Component {
                 marginTop: 0,
                 alignSelf: "flex-end"
               }}
-              onClick={() => this.downloadExcelReport(chartData)}
+              onClick={() =>
+                api.downloadExcelReport(
+                  this.formatChartDates(chartData),
+                  "relatorio"
+                )
+              }
             >
-              Baixar Relatório Excel
+              Baixar em Excel
             </Button>
           </Row>
           {this.state.showGraphics ? (

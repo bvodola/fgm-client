@@ -12,7 +12,6 @@ const StyledTr = styled.tr`
   border-bottom: 1px solid #eee;
 
   td {
-    flex: 1;
     padding: 25px 0px;
   }
 
@@ -22,6 +21,7 @@ const StyledTr = styled.tr`
 `;
 
 const StyledTd = styled.td`
+  flex: ${props => props.size || 1};
   .icon {
     margin-left: 4px;
     margin-right: 4px;

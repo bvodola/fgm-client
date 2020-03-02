@@ -40,6 +40,23 @@ const DrawImageWrapper = styled.div`
   }
 `;
 
+const DrawingWinners = ({ draw, multiline }) => (
+  <React.Fragment>
+    {draw.winners.map((winner, i) => (
+      <span>
+        {!multiline && "•"} {winner.name} {multiline ? <br /> : " - "} Tel.:{" "}
+        {winner.phone} (
+        <a target="_blank" href={draw.receipts[i].files[0]}>
+          Ver nota
+        </a>
+        ) {multiline ? <br /> : " - "} Prêmio: {draw.prize[i]}
+        <br />
+        {multiline && <br />}
+      </span>
+    ))}
+  </React.Fragment>
+);
+
 class Reports extends React.Component {
   constructor(props) {
     super(props);
@@ -70,10 +87,14 @@ class Reports extends React.Component {
           prize
           date_scheduled
           date_performed
-          winner {
+          winners {
             _id
             name
             phone
+          }
+          receipts {
+            _id
+            files
           }
         `
       );
@@ -115,7 +136,7 @@ class Reports extends React.Component {
 
   async handleSaveDrawForm(ev) {
     ev.preventDefault();
-    const { selectedDraw, form } = this.state;
+    let { selectedDraw, form } = this.state;
     let res;
 
     // ========
@@ -211,14 +232,25 @@ class Reports extends React.Component {
     }
   }
 
-  async handleSubmitDraw(draw_id) {
+  /**
+   * Split the Prize String
+   * "Prize 1 \n Prize 2 \n Prize 3" ==> ['Prize 1', 'Prize 2', 'Prize 3']
+   * @param {String} prizeString
+   * @returns {Array} the splitted prizes
+   */
+  splitPrizeString(prizeString) {
+    return prizeString.split("\n").map(p => p.trim());
+  }
+
+  async handleSubmitDraw() {
     try {
       this.setState({ isDrawInProgress: true });
       const users = await api.getUsers(
         {},
         "_id name phone receipts{_id files dental_name amount}"
       );
-      const draws = await api.getDraws({}, "receipt{_id }");
+      const draws = await api.getDraws({}, "_id prize receipts{_id }");
+      const selectedDraw = draws.find(d => d._id === this.state.selectedDraw);
 
       // Get all receipts in one array
       let receipts = [];
@@ -232,38 +264,57 @@ class Reports extends React.Component {
           });
       });
 
-      // Filter receipts that have not been drawn yet
-      receipts = receipts.filter(r => {
-        let filterEntry = true;
-        draws.forEach(d => {
-          if (d.receipt && d.receipt._id === r._id) filterEntry = false;
+      // Filter only receipts that have not been drawn yet
+      // receipts = receipts.filter(r => {
+      //   let filterEntry = true;
+      //   draws.forEach(d => {
+      //     if (Array.isArray(d.receipts)) {
+      //       d.receipts.forEach(dr => {
+      //         if (dr._id === r._id) filterEntry = false;
+      //       });
+      //     }
+      //   });
+      //   return filterEntry;
+      // });
+
+      // Split Prize String
+      // "Prize 1 \n Prize 2 \n Prize 3" ==> ['Prize 1', 'Prize 2', 'Prize 3']
+      const draw_prizes = this.splitPrizeString(selectedDraw.prize);
+
+      if (receipts.length >= draw_prizes.length) {
+        const drawed_receipt_ids = [];
+        const drawed_user_ids = [];
+
+        // Make Draws for each prize
+        draw_prizes.forEach(p => {
+          const drawedIndex = Math.floor(Math.random() * receipts.length);
+          console.log(receipts, drawedIndex, receipts[drawedIndex]);
+          drawed_receipt_ids.push(receipts[drawedIndex]._id);
+          drawed_user_ids.push(receipts[drawedIndex].user._id);
+          receipts.splice(drawedIndex, 1);
         });
-        console.log(r._id, filterEntry);
-        return filterEntry;
-      });
 
-      if (receipts.length > 0) {
-        // Make Draw
-        const drawedReceipt =
-          receipts[Math.floor(Math.random() * receipts.length)];
-
-        // Call API
-        console.log(drawedReceipt);
-        const updatedDraw = {
-          _id: this.state.selectedDraw,
-          receipt_id: drawedReceipt._id,
-          winner_id: drawedReceipt.user._id,
+        // Call API to save results of the drawing
+        let updatedDraw = {
+          _id: selectedDraw._id,
+          receipt_ids: drawed_receipt_ids,
+          winner_ids: drawed_user_ids,
           date_performed: new Date()
         };
-        await api.editDraw(updatedDraw);
+
+        const res = await api.editDraw(
+          updatedDraw,
+          "_id date_performed winners {_id name phone } receipts { _id code files}"
+        );
+        updatedDraw = res.editDraw;
+
         // Update Locally
         this.setState(prevState => {
           const updatedDraws = prevState.draws.map(d => {
             if (d._id === updatedDraw._id)
               d = {
                 ...d,
-                ...updatedDraw,
-                winner: drawedReceipt.user
+                ...updatedDraw
               };
             return d;
           });
@@ -273,7 +324,7 @@ class Reports extends React.Component {
           };
         });
       } else {
-        alert("Não há mais notas fiscais disponíveis para sorteio");
+        alert("Não há mais notas fiscais suficientes para sorteio");
         this.setState({ isDrawInProgress: false });
         return;
       }
@@ -289,24 +340,27 @@ class Reports extends React.Component {
   }
 
   render() {
+    // Sorting draws by date
     const sortedDraws = this.state.draws.sort((a, b) =>
       a.date_scheduled >= b.date_scheduled ? 1 : -1
     );
+
+    // Dividing betweeb scheduled and performed draws
     const scheduled_draws = sortedDraws.filter(d => d.date_performed === null);
-    const performed_draws = sortedDraws.filter(d => d.date_performed !== null);
+    let performed_draws = sortedDraws.filter(d => d.date_performed !== null);
+
+    // Spliting prize string of performed draws
+    performed_draws = performed_draws.map(pd => ({
+      ...pd,
+      prize: this.splitPrizeString(pd.prize)
+    }));
+
+    console.log(performed_draws);
+
+    // Selected and Performed Draw
     let selected_performed_draw = performed_draws.find(
       d => d._id === this.state.selectedDraw
     );
-
-    try {
-      if (selected_performed_draw) {
-        selected_performed_draw.receipt_file = selected_performed_draw.winner.receipts.find(
-          r => r._id === selected_performed_draw.receipt_id
-        ).files[0];
-      }
-    } catch (err) {
-      console.error(err);
-    }
 
     return (
       <div>
@@ -399,45 +453,36 @@ class Reports extends React.Component {
             ) : (
               <Table>
                 <Tr>
-                  <Td>
+                  <Td size="20%">
                     <b>Data Agendada</b>
                   </Td>
 
-                  <Td>
+                  <Td size="20%">
                     <b>Data Realizada</b>
                   </Td>
-                  <Td>
-                    <b>Ganhador</b>
-                  </Td>
-                  <Td>
-                    <b>Prêmio(s)</b>
+                  <Td size="60%">
+                    <b>Ganhadores</b>
                   </Td>
                   {/* <Td>&nbsp;</Td> */}
                 </Tr>
 
                 {performed_draws.map(draw => (
                   <Tr key={draw._id}>
-                    <Td>
+                    <Td size="20%">
                       {format(
                         new Date(Number(draw.date_scheduled)),
                         "dd/MM/yyyy"
                       )}
                     </Td>
-                    <Td>
+                    <Td size="20%">
                       {format(
                         new Date(Number(draw.date_performed)),
                         "dd/MM/yyyy"
                       )}
                     </Td>
-                    <Td>
-                      {draw.winner.name} <br />
-                      <i>{draw.winner.phone}</i>
+                    <Td size="60%">
+                      <DrawingWinners draw={draw} />
                     </Td>
-                    <Td
-                      dangerouslySetInnerHTML={{
-                        __html: draw.prize.split("\n").join("<br />")
-                      }}
-                    />
                     {/* <Td style={{ fontSize: "12px", textAlign: "center" }}>
                       Publicar?
                       <br />
@@ -488,9 +533,10 @@ class Reports extends React.Component {
                     style={{ marginTop: 0 }}
                     {...setFormField(this, "prize")}
                     placeholder={
-                      "- Prêmio 1\u000A\u000D- Prêmio 2\u000A\u000D- Prêmio 3"
+                      "Prêmio 1\u000A\u000DPrêmio 2\u000A\u000DPrêmio 3"
                     }
                   />
+                  <Text variant="hint">Adicione um prêmio por linha.</Text>
                 </Col>
               </Row>
               <Row>
@@ -549,12 +595,12 @@ class Reports extends React.Component {
             )}
             <Row mTop={"20px"}>
               <Col size={"40%"}>
-                <Text variant="label">Prêmio</Text>
+                <Text variant="label">Prêmios</Text>
               </Col>
               <Col
                 size={"60%"}
                 dangerouslySetInnerHTML={{
-                  __html: this.state.form.prize.split("\n").join("<br />")
+                  __html: this.state.form.prize.split("\n").join(", ")
                 }}
               />
             </Row>
@@ -562,17 +608,12 @@ class Reports extends React.Component {
             {selected_performed_draw ? (
               <Row mTop={"20px"}>
                 <Col size={"40%"}>
-                  <Text style={{ color: theme.colors.red }} variant="label">
-                    Ganhador
+                  <Text style={{ color: theme.colors.green }} variant="label">
+                    Ganhadores
                   </Text>
                 </Col>
-                <Col size={"60%"} style={{ color: theme.colors.red }}>
-                  <a
-                    href={selected_performed_draw.receipt_file}
-                    target="_blank"
-                  >
-                    {selected_performed_draw.winner.name} (Ver nota)
-                  </a>
+                <Col size={"60%"} style={{ color: theme.colors.green }}>
+                  <DrawingWinners multiline draw={selected_performed_draw} />
                 </Col>
               </Row>
             ) : (

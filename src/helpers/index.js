@@ -111,6 +111,14 @@ const stringify = obj_from_json => {
     .join(",")}}`;
 };
 
+function downloadFromBuffer(filename, type, bytes) {
+  const blob = new Blob([bytes], { type });
+  let link = document.createElement("a");
+  link.href = window.URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
 export {
   cookie,
   handleAwsUpload,
@@ -119,5 +127,6 @@ export {
   randomString,
   randomNumber,
   capitalizeFirst,
-  stringify
+  stringify,
+  downloadFromBuffer
 };

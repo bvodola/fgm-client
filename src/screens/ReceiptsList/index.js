@@ -2,7 +2,16 @@ import React from "react";
 import { format } from "date-fns";
 import styled from "styled-components";
 
-import { Section, Text, Table, Tr, Td, Filters, Row } from "src/components";
+import {
+  Section,
+  Text,
+  Table,
+  Tr,
+  Td,
+  Filters,
+  Row,
+  Button
+} from "src/components";
 import api from "src/api";
 
 const RecepitsTable = styled(Table)`
@@ -161,8 +170,51 @@ class ReceitsList extends React.Component {
     return tableData;
   }
 
+  getXlsData(tableData) {
+    try {
+      let xlsData = tableData.map(e => [
+        format(new Date(Number(e.user.created)), "dd/MM/yyyy HH:mm"),
+        e.user.name,
+        e.user.email,
+        e.user.phone,
+        e.user.cro,
+        e.user.cpf,
+        e.user.rg_cnpj,
+        e.receipt.approved ? "Sim" : "Não",
+        e.receipt.dental_name,
+        e.receipt.code,
+        e.receipt.amount,
+        e.receipt.files[0]
+      ]);
+
+      xlsData = [
+        [
+          "Data",
+          "Nome",
+          "Email",
+          "Telefone",
+          "CRO",
+          "CPF",
+          "RG/CNPJ",
+          "Aprovada?",
+          "Dental",
+          "Código da Nota",
+          "Valor",
+          "Arquivo"
+        ],
+        ...xlsData
+      ];
+
+      return xlsData;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   render() {
     const tableData = this.getTableData();
+    const xlsData = this.getXlsData(tableData);
+    console.log(xlsData);
 
     return (
       <div>
@@ -174,6 +226,17 @@ class ReceitsList extends React.Component {
             dateRange={this.state.dateRange}
             handleDateRange={this.handleDateRange}
           />
+
+          <Row>
+            <Button
+              style={{
+                fontSize: "15px"
+              }}
+              onClick={() => api.downloadExcelReport(xlsData, "notas_fiscais")}
+            >
+              Baixar em Excel
+            </Button>
+          </Row>
           <Row padded>
             <Text>{tableData.length} notas fiscais cadastradas</Text>
           </Row>
