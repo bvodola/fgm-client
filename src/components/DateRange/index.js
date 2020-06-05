@@ -7,6 +7,8 @@ const GlobalStyle = createGlobalStyle`
     border-radius: 8px;
     padding: 8px;
   }
+
+  
 `;
 
 const DateRange = props => (

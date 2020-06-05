@@ -25,7 +25,7 @@ const login = async (email, password) => {
       `${BACKEND_URL}/auth/login`,
       {
         email,
-        password
+        password,
       },
       {}
     );
@@ -54,10 +54,10 @@ const get = async (
           model,
           inputFields,
           returnFields
-        )}`
+        )}`,
       },
       {
-        headers
+        headers,
       }
     );
     returnFields = "_id";
@@ -78,10 +78,10 @@ const add = async (
     const res = await axios.post(
       `${BACKEND_URL}/graphql`,
       {
-        query: `${types.ADD(model, inputFields, returnFields)}`
+        query: `${types.ADD(model, inputFields, returnFields)}`,
       },
       {
-        headers
+        headers,
       }
     );
     return res.data.data;
@@ -101,10 +101,10 @@ const edit = async (
     const res = await axios.post(
       `${BACKEND_URL}/graphql`,
       {
-        query: `${types.EDIT(model, inputFields, returnFields)}`
+        query: `${types.EDIT(model, inputFields, returnFields)}`,
       },
       {
-        headers
+        headers,
       }
     );
     return res.data.data;
@@ -123,10 +123,10 @@ const remove = async (
     const res = await axios.post(
       `${BACKEND_URL}/graphql`,
       {
-        query: `${types.REMOVE(model, inputFields, returnFields)}`
+        query: `${types.REMOVE(model, inputFields, returnFields)}`,
       },
       {
-        headers
+        headers,
       }
     );
     return res.data.data;
@@ -143,7 +143,7 @@ const crud = (model, addLoggedUserInputFields = false) => {
     addLoggedUserInputFields = {
       getOne: true,
       getMany: true,
-      add: true
+      add: true,
     };
   }
 
@@ -152,7 +152,7 @@ const crud = (model, addLoggedUserInputFields = false) => {
       if (addLoggedUserInputFields.getOne) {
         fields = {
           ...fields,
-          user_id: getCurrentUserId()
+          user_id: getCurrentUserId(),
         };
       }
       return get(false, `${model}`, fields, returnFields);
@@ -166,7 +166,7 @@ const crud = (model, addLoggedUserInputFields = false) => {
       if (addLoggedUserInputFields.getMany)
         fields = {
           ...fields,
-          user_id: getCurrentUserId()
+          user_id: getCurrentUserId(),
         };
       return get(true, `${model}`, fields, returnFields);
     } catch (err) {
@@ -179,7 +179,7 @@ const crud = (model, addLoggedUserInputFields = false) => {
       if (addLoggedUserInputFields.add)
         fields = {
           ...fields,
-          user_id: getCurrentUserId()
+          user_id: getCurrentUserId(),
         };
       return add(model, fields, returnFields, setAuthHeader());
     } catch (err) {
@@ -215,10 +215,10 @@ async function downloadExcelReport(data, filename = "report") {
     const res = await axios.post(
       `${BACKEND_URL}/api/excel`,
       {
-        data: dataString
+        data: dataString,
       },
       {
-        responseType: "arraybuffer"
+        responseType: "arraybuffer",
       }
     );
 
@@ -232,11 +232,35 @@ async function downloadExcelReport(data, filename = "report") {
   }
 }
 
+async function sendResetPasswordMail(email) {
+  try {
+    const res = await axios.get(
+      `${BACKEND_URL}/send-reset-password-mail?email=${email}`
+    );
+    return res;
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function resetPassword(email, passwordToken, password) {
+  try {
+    const res = await axios.get(
+      `${BACKEND_URL}/reset-password?email=${email}&passwordToken=${passwordToken}&password=${password}`
+    );
+    return res;
+  } catch (err) {
+    throw err;
+  }
+}
+
 const api = {
   login,
   ...crud("user"),
   ...crud("draw"),
-  downloadExcelReport
+  downloadExcelReport,
+  sendResetPasswordMail,
+  resetPassword,
 };
 
 export default api;

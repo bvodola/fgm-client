@@ -1,7 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
 import styled from "styled-components";
-
+import { Link } from "react-router-dom";
 import {
   Section,
   Text,
@@ -15,7 +15,11 @@ import {
 import api from "src/api";
 
 const RecepitsTable = styled(Table)`
-  font-size: 13px;
+  @media (min-width: 900px) {
+    font-size: 13px;
+  }
+  font-size: 10px;
+
   tr {
     td:nth-child(1) {
       flex: 10%;
@@ -38,6 +42,9 @@ const RecepitsTable = styled(Table)`
       font-weight: bold;
       flex: 10%;
       text-align: center;
+    }
+    td.action-button {
+      flex: 10%;
       img {
         width: 32px;
       }
@@ -79,9 +86,11 @@ class ReceitsList extends React.Component {
 
   async componentDidMount() {
     try {
-      const users = await api.getUsers(
-        {},
-        `
+      let users = [];
+      if (this.props.loggedInUser.role === "ADMIN") {
+        users = await api.getUsers(
+          {},
+          `
           _id
           created
           name
@@ -99,7 +108,16 @@ class ReceitsList extends React.Component {
             files
           }
         `
-      );
+        );
+      } else {
+        users = await api.getUsers(
+          {
+            _id: this.props.loggedInUser._id
+          },
+          "_id created receipts {dental_name amount code files}"
+        );
+      }
+
       this.setState({ users });
     } catch (err) {
       console.log(err);
@@ -214,41 +232,58 @@ class ReceitsList extends React.Component {
   render() {
     const tableData = this.getTableData();
     const xlsData = this.getXlsData(tableData);
-    console.log(xlsData);
+    const { loggedInUser } = this.props;
 
     return (
       <div>
         <Text variant="h1">Notas Fiscais</Text>
         <Section>
-          <Filters
-            filterByDate={this.state.filterByDate}
-            handleFilterByDate={this.handleFilterByDate}
-            dateRange={this.state.dateRange}
-            handleDateRange={this.handleDateRange}
-          />
+          {loggedInUser.role === "ADMIN" && (
+            <React.Fragment>
+              <Filters
+                filterByDate={this.state.filterByDate}
+                handleFilterByDate={this.handleFilterByDate}
+                dateRange={this.state.dateRange}
+                handleDateRange={this.handleDateRange}
+              />
 
-          <Row>
-            <Button
-              style={{
-                fontSize: "15px"
-              }}
-              onClick={() => api.downloadExcelReport(xlsData, "notas_fiscais")}
-            >
-              Baixar em Excel
-            </Button>
-          </Row>
+              <Row>
+                <Button
+                  style={{
+                    fontSize: "15px"
+                  }}
+                  onClick={() =>
+                    api.downloadExcelReport(xlsData, "notas_fiscais")
+                  }
+                >
+                  Baixar em Excel
+                </Button>
+              </Row>
+            </React.Fragment>
+          )}
+
+          {loggedInUser.role === "CLIENT" && (
+            <Row>
+              <Link to="cadastrar-nota">
+                <Button>Cadastrar Nota</Button>
+              </Link>
+            </Row>
+          )}
+
           <Row padded>
-            <Text>{tableData.length} notas fiscais cadastradas</Text>
+            <Text>{tableData.length} notas fiscais cadastrada(s)</Text>
           </Row>
           <Row padded>
             <RecepitsTable>
               <Tr className="header">
                 <Td>Data</Td>
-                <Td>Client</Td>
-                <Td>Documentos</Td>
+                {loggedInUser.role === "ADMIN" && <Td>Cliente</Td>}
+                {loggedInUser.role === "ADMIN" && <Td>Documentos</Td>}
                 <Td>Nota Fiscal</Td>
-                <Td>&nbsp;</Td>
-                <Td>&nbsp;</Td>
+                <Td className="action-button">&nbsp;</Td>
+                {loggedInUser.role === "ADMIN" && (
+                  <Td className="action-button">&nbsp;</Td>
+                )}
               </Tr>
               {tableData.map(row => (
                 <Tr key={row.receipt._id}>
@@ -256,43 +291,49 @@ class ReceitsList extends React.Component {
                     {format(Number(row.user.created), "dd/MM/yyyy")} <br />{" "}
                     {format(Number(row.user.created), "HH:mm")}
                   </Td>
-                  <Td>
-                    <i>{row.user.name}</i> <br />
-                    {row.user.email} <br />
-                    {row.user.phone}
-                  </Td>
-                  <Td>
-                    CRO: {row.user.cro} <br />
-                    CPF: {row.user.cpf} <br />
-                    RG/CNPJ: {row.user.rg_cnpj}
-                  </Td>
+                  {loggedInUser.role === "ADMIN" && (
+                    <Td>
+                      <i>{row.user.name}</i> <br />
+                      {row.user.email} <br />
+                      {row.user.phone}
+                    </Td>
+                  )}
+                  {loggedInUser.role === "ADMIN" && (
+                    <Td>
+                      CRO: {row.user.cro} <br />
+                      CPF: {row.user.cpf} <br />
+                      RG/CNPJ: {row.user.rg_cnpj}
+                    </Td>
+                  )}
                   <Td>
                     {row.receipt.dental_name} <br />
-                    Nota No: {row.receipt.code} <br />
+                    No: {row.receipt.code} <br />
                     R$ {row.receipt.amount}
                   </Td>
-                  <Td>
+                  <Td className="action-button">
                     Ver Nota <br />
                     <a href={row.receipt.files[0]} target="_blank">
                       <img src="/public/download.png" alt="" />
                     </a>
                   </Td>
-                  <Td>
-                    Aprovada? <br />
-                    <CheckboxWrapper
-                      onClick={() =>
-                        this.toggleApproveReceipt(
-                          row.user._id,
-                          row.receipt._id,
-                          !row.receipt.approved
-                        )
-                      }
-                    >
-                      {row.receipt.approved && (
-                        <img src="/public/check.png" alt="" />
-                      )}
-                    </CheckboxWrapper>
-                  </Td>
+                  {loggedInUser.role === "ADMIN" && (
+                    <Td className="action-button">
+                      Aprovada? <br />
+                      <CheckboxWrapper
+                        onClick={() =>
+                          this.toggleApproveReceipt(
+                            row.user._id,
+                            row.receipt._id,
+                            !row.receipt.approved
+                          )
+                        }
+                      >
+                        {row.receipt.approved && (
+                          <img src="/public/check.png" alt="" />
+                        )}
+                      </CheckboxWrapper>
+                    </Td>
+                  )}
                 </Tr>
               ))}
             </RecepitsTable>

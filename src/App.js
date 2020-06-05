@@ -1,6 +1,12 @@
 import React from "react";
 import { ThemeProvider } from "styled-components";
-import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Link,
+  Redirect,
+} from "react-router-dom";
 import FadeIn from "react-fade-in";
 import api from "src/api";
 import theme from "src/theme.js";
@@ -8,6 +14,9 @@ import { Nav, Text, Section, Input, Button } from "src/components";
 import ReceiptsList from "src/screens/ReceiptsList";
 import Reports from "src/screens/Reports";
 import Drawings from "src/screens/Drawings";
+import AddReceipt from "src/screens/AddReceipt";
+import ForgotPassword from "src/screens/ForgotPassword";
+import ResetPassword from "src/screens/ResetPassword";
 import { setFormField } from "src/helpers";
 import "./App.scss";
 
@@ -20,8 +29,8 @@ class App extends React.Component {
       loggedInUser: {},
       form: {
         email: "",
-        password: ""
-      }
+        password: "",
+      },
     };
     this.handleSubmitLogin = this.handleSubmitLogin.bind(this);
     this.setupLogin = this.setupLogin.bind(this);
@@ -60,6 +69,9 @@ class App extends React.Component {
   }
 
   render() {
+    console.log(this.state.loggedInUser);
+    const { loggedInUser } = this.state;
+
     return (
       <ThemeProvider theme={theme}>
         <Router>
@@ -68,38 +80,49 @@ class App extends React.Component {
               <div className="logo">
                 <img src="/public/fgm.png" alt="Logo FGM" />
               </div>
-              <ul className="menu">
-                <li>
-                  <Link to="/">Notas Fiscais</Link>
-                </li>
-                <li>&bull;</li>
-                <li>
-                  <Link to="/relatorios">Relatórios</Link>
-                </li>
-                <li>&bull;</li>
-                <li>
-                  <Link to="/sorteios">Sorteios</Link>
-                </li>
-                <li>&bull;</li>
-                <li className="visible-mobile">
-                  <a href="#" onClick={() => {}}>
-                    {this.state.isLoggedIn ? (
+              {this.state.isLoggedIn && (
+                <ul className="menu">
+                  <li>
+                    <Link to="/">Notas Fiscais</Link>
+                  </li>
+                  <li>&bull;</li>
+                  {loggedInUser.role === "CLIENT" && (
+                    <React.Fragment>
+                      <li>
+                        <Link to="/cadastrar-nota">Cadastrar Nota</Link>
+                      </li>
+                      <li>&bull;</li>
+                    </React.Fragment>
+                  )}
+                  {loggedInUser.role === "ADMIN" && (
+                    <React.Fragment>
+                      <li>
+                        <Link to="/relatorios">Relatórios</Link>
+                      </li>
+                      <li>&bull;</li>
+                      <li>
+                        <Link to="/sorteios">Sorteios</Link>
+                      </li>
+                      <li>&bull;</li>
+                    </React.Fragment>
+                  )}
+
+                  <li className="visible-mobile">
+                    <a href="#" onClick={() => {}}>
                       <span>
                         {this.state.loggedInUser.email}{" "}
                         <span onClick={this.logout}>(Logout)</span>
                       </span>
-                    ) : (
-                      <span></span>
-                    )}
-                  </a>
-                </li>
-              </ul>
+                    </a>
+                  </li>
+                </ul>
+              )}
             </Nav>
             <div style={{ paddingTop: "80px" }}></div>
             {this.state.isLoggedIn ? (
               <Switch>
                 <Route exact path="/">
-                  <ReceiptsList />
+                  <ReceiptsList loggedInUser={loggedInUser} />
                 </Route>
                 <Route path="/relatorios">
                   <Reports />
@@ -107,26 +130,41 @@ class App extends React.Component {
                 <Route path="/sorteios">
                   <Drawings />
                 </Route>
+                <Route path="/cadastrar-nota">
+                  <AddReceipt loggedInUser={loggedInUser} />
+                </Route>
               </Switch>
             ) : (
-              <FadeIn>
-                <Text variant="h1">Login</Text>
-                <Section variant="box">
-                  <form action="#" onSubmit={this.handleSubmitLogin}>
-                    <Input
-                      {...setFormField(this, "email")}
-                      type="text"
-                      placeholder="Email"
-                    />
-                    <Input
-                      {...setFormField(this, "password")}
-                      type="password"
-                      placeholder="Senha"
-                    />
-                    <Button type="submit">Fazer Login</Button>
-                  </form>
-                </Section>
-              </FadeIn>
+              <Switch>
+                <Route exact path="/">
+                  <FadeIn>
+                    <Text variant="h1">Login</Text>
+                    <Section variant="box" style={{ textAlign: "center" }}>
+                      <form action="#" onSubmit={this.handleSubmitLogin}>
+                        <Input
+                          {...setFormField(this, "email")}
+                          type="text"
+                          placeholder="Email"
+                        />
+                        <Input
+                          {...setFormField(this, "password")}
+                          type="password"
+                          placeholder="Senha"
+                        />
+
+                        <Button type="submit">Fazer Login</Button>
+                      </form>
+                      <Link to="/esqueci-minha-senha">Esqueci minha senha</Link>
+                    </Section>
+                  </FadeIn>
+                </Route>
+                <Route path="/esqueci-minha-senha">
+                  <ForgotPassword />
+                </Route>
+                <Route path="/redefinir-senha">
+                  <ResetPassword />
+                </Route>
+              </Switch>
             )}
           </div>
         </Router>

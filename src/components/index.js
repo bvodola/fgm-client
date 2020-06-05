@@ -13,6 +13,9 @@ import Filters from "./Filters";
 import BarChart from "./BarChart";
 import Modal from "./Modal";
 import Checkbox from "./Checkbox";
+import ReceiptsForm from "./ReceiptsForm";
+import FileUploader from "./FileUploader";
+import Field from "./Field";
 
 export {
   Button,
@@ -32,5 +35,8 @@ export {
   Filters,
   BarChart,
   Modal,
-  Checkbox
+  Checkbox,
+  ReceiptsForm,
+  FileUploader,
+  Field
 };

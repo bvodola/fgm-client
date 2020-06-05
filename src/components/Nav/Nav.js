@@ -18,7 +18,8 @@ const Nav = styled.nav`
         display: none !important;
       }
 
-      li.visible-mobile {
+      li.visible-mobile,
+      li.visible-mobile span {
         display: block !important;
       }
     }

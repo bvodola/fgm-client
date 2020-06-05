@@ -43,6 +43,7 @@ const setFormField = (self, name) => {
   const _ = new StateHandler(self);
 
   return {
+    name,
     onChange: ev => {
       // let {form} = self.state;
       // form[name] = ev.target.type === 'number' ?  Number(ev.target.value) : ev.target.value;
@@ -119,6 +120,31 @@ function downloadFromBuffer(filename, type, bytes) {
   link.click();
 }
 
+const handleCloudinaryUpload = async file => {
+  try {
+    const CLOUDINARY_UPLOAD_PRESET_ID = "swgj6qeu";
+    const CLOUDINARY_USERNAME = "bvodola";
+    const CLOUDINARY_API_KEY = "473224552137915";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("tags", "text_detection");
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET_ID);
+    formData.append("api_key", CLOUDINARY_API_KEY);
+    formData.append("timestamp", (Date.now() / 1000) | 0);
+
+    const res = await axios.post(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_USERNAME}/auto/upload`,
+      formData,
+      { headers: { "X-Requested-With": "XMLHttpRequest" } }
+    );
+
+    return res;
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 export {
   cookie,
   handleAwsUpload,
@@ -128,5 +154,6 @@ export {
   randomNumber,
   capitalizeFirst,
   stringify,
-  downloadFromBuffer
+  downloadFromBuffer,
+  handleCloudinaryUpload
 };

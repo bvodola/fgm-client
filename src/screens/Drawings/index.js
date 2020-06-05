@@ -8,7 +8,6 @@ import api from "src/api";
 import { setFormField } from "src/helpers";
 import {
   Section,
-  Checkbox,
   Text,
   Row,
   Col,
@@ -18,7 +17,7 @@ import {
   Modal,
   Table,
   Tr,
-  Td
+  Td,
 } from "src/components";
 import theme from "src/theme";
 
@@ -40,15 +39,41 @@ const DrawImageWrapper = styled.div`
   }
 `;
 
-const DrawingWinners = ({ draw, multiline }) => (
+const getReceiptFileByReceiptId = (users, receiptId) => {
+  try {
+    let receipt = {};
+    users.forEach((u) => {
+      const foundReceipt = u.receipts.find((r) => r._id === receiptId);
+      if (typeof foundReceipt !== "undefined") receipt = foundReceipt;
+    });
+    if (typeof receipt !== "undefined") {
+      return receipt.files.length > 0 ? receipt.files[0] : "";
+    }
+  } catch (err) {
+    console.log("getReceiptFileByReceiptId ERROR", err);
+    return "";
+  }
+};
+
+const DrawingWinners = ({ draw, multiline, users }) => (
   <React.Fragment>
     {draw.winners.map((winner, i) => (
       <span>
         {!multiline && "•"} {winner.name} {multiline ? <br /> : " - "} Tel.:{" "}
-        {winner.phone} (
-        <a target="_blank" href={draw.receipts[i].files[0]}>
-          Ver nota
-        </a>
+        {winner.phone} ({" "}
+        {winner.receipt_id &&
+        winner.receipt_id.includes("res.cloudinary.com") ? (
+          <a target="_blank" href={winner.receipt_id}>
+            Ver nota
+          </a>
+        ) : (
+          <a
+            target="_blank"
+            href={getReceiptFileByReceiptId(users, winner.receipt_id)}
+          >
+            Ver nota
+          </a>
+        )}
         ) {multiline ? <br /> : " - "} Prêmio: {draw.prize[i]}
         <br />
         {multiline && <br />}
@@ -57,19 +82,20 @@ const DrawingWinners = ({ draw, multiline }) => (
   </React.Fragment>
 );
 
-class Reports extends React.Component {
+class Drawings extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       draws: [],
+      users: [],
       isModalOpened: false,
       isDrawModalOpened: false,
       selectedDraw: null,
       isDrawInProgress: false,
       form: {
         date_scheduled: null,
-        prize: ""
-      }
+        prize: "",
+      },
     };
 
     this.handleSaveDrawForm = this.handleSaveDrawForm.bind(this);
@@ -87,24 +113,22 @@ class Reports extends React.Component {
           prize
           date_scheduled
           date_performed
-          winners {
-            _id
-            name
-            phone
-          }
-          receipts {
-            _id
-            files
-          }
+          receipt_ids
         `
       );
-      this.setState({ draws });
+
+      const users = await api.getUsers(
+        {},
+        "_id name phone receipts{_id files dental_name amount}"
+      );
+
+      this.setState({ draws, users });
     } catch (err) {
       console.log(err);
     }
   }
 
-  handleIsModalOpened = isModalOpened => {
+  handleIsModalOpened = (isModalOpened) => {
     // If the modal is closing, unset selectedDraw
     if (!isModalOpened && this.state.selectedDraw) {
       setTimeout(() => {
@@ -112,8 +136,8 @@ class Reports extends React.Component {
           selectedDraw: null,
           form: {
             prize: "",
-            date_scheduled: null
-          }
+            date_scheduled: null,
+          },
         });
       }, 200);
     }
@@ -122,14 +146,14 @@ class Reports extends React.Component {
     this.setState({ isModalOpened });
   };
 
-  handleFormDate = date_scheduled => {
-    this.setState(prevState => {
+  handleFormDate = (date_scheduled) => {
+    this.setState((prevState) => {
       return {
         ...prevState,
         form: {
           ...prevState.form,
-          date_scheduled
-        }
+          date_scheduled,
+        },
       };
     });
   };
@@ -159,23 +183,23 @@ class Reports extends React.Component {
     if (res.addDraw) {
       // Add Case
       const newDraw = res.addDraw;
-      this.setState(prevState => {
+      this.setState((prevState) => {
         return {
           ...prevState,
-          draws: [...prevState.draws, newDraw]
+          draws: [...prevState.draws, newDraw],
         };
       });
     } else if (res.editDraw) {
       // Edit Case
       const updatedDraw = res.editDraw;
-      this.setState(prevState => {
-        const updatedDraws = prevState.draws.map(d => {
+      this.setState((prevState) => {
+        const updatedDraws = prevState.draws.map((d) => {
           if (d._id === selectedDraw) d = updatedDraw;
           return d;
         });
         return {
           ...prevState,
-          draws: updatedDraws
+          draws: updatedDraws,
         };
       });
     }
@@ -189,45 +213,44 @@ class Reports extends React.Component {
     const applyRemove = confirm("Deseja mesmo remover esse sorteio?");
     if (applyRemove) {
       const res = await api.removeDraw({ _id: draw_id });
-      this.setState(prevState => {
-        const newDraws = prevState.draws.filter(d => d._id !== draw_id);
+      this.setState((prevState) => {
+        const newDraws = prevState.draws.filter((d) => d._id !== draw_id);
         return {
           ...prevState,
-          draws: newDraws
+          draws: newDraws,
         };
       });
     }
   }
 
   async editDraw(draw_id) {
-    const selectedDraw = this.state.draws.find(d => d._id === draw_id);
+    const selectedDraw = this.state.draws.find((d) => d._id === draw_id);
     const form = {
       prize: selectedDraw.prize,
-      date_scheduled: new Date(Number(selectedDraw.date_scheduled))
+      date_scheduled: new Date(Number(selectedDraw.date_scheduled)),
     };
 
     this.setState({
       selectedDraw: draw_id,
       isModalOpened: true,
-      form
+      form,
     });
   }
 
   async toggleDrawModal(draw_id = null) {
-    console.log(draw_id);
     if (!draw_id) {
       this.setState({ isDrawModalOpened: false, selectedDraw: null });
     } else {
-      let selectedDraw = this.state.draws.find(d => d._id === draw_id);
+      let selectedDraw = this.state.draws.find((d) => d._id === draw_id);
       const form = {
         date_scheduled: new Date(Number(selectedDraw.date_scheduled)),
-        prize: selectedDraw.prize
+        prize: selectedDraw.prize,
       };
 
       this.setState({
         selectedDraw: draw_id,
         isDrawModalOpened: true,
-        form
+        form,
       });
     }
   }
@@ -239,7 +262,7 @@ class Reports extends React.Component {
    * @returns {Array} the splitted prizes
    */
   splitPrizeString(prizeString) {
-    return prizeString.split("\n").map(p => p.trim());
+    return prizeString.split("\n").map((p) => p.trim());
   }
 
   async handleSubmitDraw() {
@@ -249,17 +272,21 @@ class Reports extends React.Component {
         {},
         "_id name phone receipts{_id files dental_name amount}"
       );
-      const draws = await api.getDraws({}, "_id prize receipts{_id }");
-      const selectedDraw = draws.find(d => d._id === this.state.selectedDraw);
+      const draws = await api.getDraws(
+        {},
+        "_id prize receipt_files receipts{_id }"
+      );
+      const selectedDraw = draws.find((d) => d._id === this.state.selectedDraw);
+      window.users = users;
 
       // Get all receipts in one array
       let receipts = [];
-      users.forEach(u => {
+      users.forEach((u) => {
         if (u.receipts)
-          u.receipts.forEach(r => {
+          u.receipts.forEach((r) => {
             receipts.push({
               ...r,
-              user: u
+              user: u,
             });
           });
       });
@@ -281,17 +308,29 @@ class Reports extends React.Component {
       // "Prize 1 \n Prize 2 \n Prize 3" ==> ['Prize 1', 'Prize 2', 'Prize 3']
       const draw_prizes = this.splitPrizeString(selectedDraw.prize);
 
+      // Only make draw if we have enough receipts in the datanase
+
       if (receipts.length >= draw_prizes.length) {
         const drawed_receipt_ids = [];
         const drawed_user_ids = [];
 
+        console.log("receipts", receipts);
         // Make Draws for each prize
-        draw_prizes.forEach(p => {
-          const drawedIndex = Math.floor(Math.random() * receipts.length);
-          console.log(receipts, drawedIndex, receipts[drawedIndex]);
-          drawed_receipt_ids.push(receipts[drawedIndex]._id);
-          drawed_user_ids.push(receipts[drawedIndex].user._id);
-          receipts.splice(drawedIndex, 1);
+        draw_prizes.forEach((p) => {
+          let drawed_receipt_file = "";
+          console.log("before while");
+          while (drawed_receipt_file === "") {
+            const drawedIndex = Math.floor(Math.random() * receipts.length);
+            if (
+              Array.isArray(receipts[drawedIndex].files) &&
+              receipts[drawedIndex].files[0]
+            ) {
+              drawed_receipt_file = receipts[drawedIndex].files[0];
+              drawed_receipt_ids.push(drawed_receipt_file);
+              drawed_user_ids.push(receipts[drawedIndex].user._id);
+              receipts.splice(drawedIndex, 1);
+            }
+          }
         });
 
         // Call API to save results of the drawing
@@ -299,28 +338,33 @@ class Reports extends React.Component {
           _id: selectedDraw._id,
           receipt_ids: drawed_receipt_ids,
           winner_ids: drawed_user_ids,
-          date_performed: new Date()
+          // winners: drawed_receipt_ids.map((file) =>
+          //   this.getUserByReceiptFile(users, file)
+          // ),
+          date_performed: new Date(),
         };
+
+        console.log("updatedDraw", updatedDraw);
 
         const res = await api.editDraw(
           updatedDraw,
-          "_id date_performed winners {_id name phone } receipts { _id code files}"
+          "_id date_performed winners {_id name phone receipts { _id code files } } receipt_ids"
         );
         updatedDraw = res.editDraw;
 
         // Update Locally
-        this.setState(prevState => {
-          const updatedDraws = prevState.draws.map(d => {
+        this.setState((prevState) => {
+          const updatedDraws = prevState.draws.map((d) => {
             if (d._id === updatedDraw._id)
               d = {
                 ...d,
-                ...updatedDraw
+                ...updatedDraw,
               };
             return d;
           });
           return {
             ...prevState,
-            draws: updatedDraws
+            draws: updatedDraws,
           };
         });
       } else {
@@ -339,6 +383,20 @@ class Reports extends React.Component {
     }
   }
 
+  getUserByReceiptFile = (users, file) =>
+    users.find((u) => u.receipts.find((r) => r.files[0] === file));
+
+  getUserByReceiptId = (users, receiptId) =>
+    users.find((u) => u.receipts.find((r) => r._id === receiptId));
+
+  getReceiptFileByReceiptId = (users, receiptId) => {
+    let receipt = {};
+    users.forEach((u) => {
+      receipt = u.receipts.find((r) => r._id === receiptId);
+    });
+    return receipt.files.length > 0 ? receipt.files[0] : "";
+  };
+
   render() {
     // Sorting draws by date
     const sortedDraws = this.state.draws.sort((a, b) =>
@@ -346,20 +404,46 @@ class Reports extends React.Component {
     );
 
     // Dividing betweeb scheduled and performed draws
-    const scheduled_draws = sortedDraws.filter(d => d.date_performed === null);
-    let performed_draws = sortedDraws.filter(d => d.date_performed !== null);
+    const scheduled_draws = sortedDraws.filter(
+      (d) => d.date_performed === null
+    );
+    let performed_draws = sortedDraws.filter((d) => d.date_performed !== null);
 
-    // Spliting prize string of performed draws
-    performed_draws = performed_draws.map(pd => ({
-      ...pd,
-      prize: this.splitPrizeString(pd.prize)
-    }));
+    // Spliting prize string of performed draws and setting up winners array
+    performed_draws = performed_draws.map((pd) => {
+      try {
+        let winners = [];
+        pd.receipt_ids.forEach((rid) => {
+          if (rid) {
+            const winner = rid.includes("res.cloudinary.com")
+              ? this.getUserByReceiptFile(this.state.users, rid)
+              : this.getUserByReceiptId(this.state.users, rid);
+
+            if (typeof winner !== "undefined") {
+              winners.push({
+                ...winner,
+                receipt_id: rid,
+              });
+            }
+          }
+        });
+
+        return {
+          ...pd,
+          winners, // Winners Array
+          prize: this.splitPrizeString(pd.prize), // Prize Array
+        };
+      } catch (err) {
+        console.log(err);
+        return pd;
+      }
+    });
 
     console.log(performed_draws);
 
     // Selected and Performed Draw
     let selected_performed_draw = performed_draws.find(
-      d => d._id === this.state.selectedDraw
+      (d) => d._id === this.state.selectedDraw
     );
 
     return (
@@ -380,7 +464,7 @@ class Reports extends React.Component {
                 style={{
                   fontSize: "15px",
                   marginTop: 0,
-                  alignSelf: "flex-end"
+                  alignSelf: "flex-end",
                 }}
               >
                 Agendar novo sorteio
@@ -402,12 +486,12 @@ class Reports extends React.Component {
                   <Td>&nbsp;</Td>
                 </Tr>
 
-                {scheduled_draws.map(d => (
+                {scheduled_draws.map((d) => (
                   <Tr key={d._id}>
                     <Td>{format(Number(d.date_scheduled), "dd/MM/yyyy")}</Td>
                     <Td
                       dangerouslySetInnerHTML={{
-                        __html: d.prize.split("\n").join("<br />")
+                        __html: d.prize.split("\n").join("<br />"),
                       }}
                     />
                     <Td style={{ textAlign: "right" }}>
@@ -416,7 +500,7 @@ class Reports extends React.Component {
                         style={{
                           fontSize: "12px",
                           marginTop: 0,
-                          alignSelf: "flex-end"
+                          alignSelf: "flex-end",
                         }}
                         variant="info"
                       >
@@ -466,7 +550,7 @@ class Reports extends React.Component {
                   {/* <Td>&nbsp;</Td> */}
                 </Tr>
 
-                {performed_draws.map(draw => (
+                {performed_draws.map((draw) => (
                   <Tr key={draw._id}>
                     <Td size="20%">
                       {format(
@@ -481,7 +565,7 @@ class Reports extends React.Component {
                       )}
                     </Td>
                     <Td size="60%">
-                      <DrawingWinners draw={draw} />
+                      <DrawingWinners draw={draw} users={this.state.users} />
                     </Td>
                     {/* <Td style={{ fontSize: "12px", textAlign: "center" }}>
                       Publicar?
@@ -516,7 +600,7 @@ class Reports extends React.Component {
                 <Col size={"80%"}>
                   <DatePicker
                     value={this.state.form.date_scheduled}
-                    onChange={date_scheduled =>
+                    onChange={(date_scheduled) =>
                       this.handleFormDate(date_scheduled)
                     }
                   />
@@ -600,7 +684,7 @@ class Reports extends React.Component {
               <Col
                 size={"60%"}
                 dangerouslySetInnerHTML={{
-                  __html: this.state.form.prize.split("\n").join(", ")
+                  __html: this.state.form.prize.split("\n").join(", "),
                 }}
               />
             </Row>
@@ -634,4 +718,4 @@ class Reports extends React.Component {
   }
 }
 
-export default Reports;
+export default Drawings;

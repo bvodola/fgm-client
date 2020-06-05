@@ -4,6 +4,7 @@ const BACKEND_PORT = 3000;
 switch (process.env.NODE_ENV) {
   case "development":
     BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
+    // BACKEND_URL = "https://intense-thicket-75118.herokuapp.com";
     break;
   case "production":
     BACKEND_URL = "https://intense-thicket-75118.herokuapp.com";
